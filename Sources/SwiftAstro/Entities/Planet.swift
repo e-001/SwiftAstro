@@ -198,3 +198,35 @@ extension SwiftAstro.Planet {
     }
 
 }
+
+
+// MARK: - Local Azimuth and Elevation
+
+extension SwiftAstro.Planet {
+
+    /// Calculates the local azimuth and elevation angle of the planet for a given observer's location and time.
+    /// - Parameters:
+    ///   - observerLatitude: The latitude of the observer in degrees.
+    ///   - observerLongitude: The longitude of the observer in degrees.
+    ///   - observerAltitude: The altitude of the observer in meters.
+    ///   - t: The time of observation.
+    /// - Returns: A tuple containing the azimuth and elevation angles in degrees.
+    public func localAzimuthAndElevation(observerLatitude: Double, observerLongitude: Double, observerAltitude: Double, t: SwiftAstro.Time) -> (azimuth: Double, elevation: Double) {
+        let (ra, decl) = self.geocentricPosition(t: t, adjustForLightTime: true)
+        
+        let lst = t.localSiderealTime(longitude: observerLongitude)
+        let hourAngle = SwiftAstro.Angle(degrees: lst * 15) - ra
+        
+        let latitudeRadians = observerLatitude * .pi / 180
+        let hourAngleRadians = hourAngle.radians
+        let declRadians = decl.radians
+        
+        let altitude = asin(sin(latitudeRadians) * sin(declRadians) + cos(latitudeRadians) * cos(declRadians) * cos(hourAngleRadians))
+        let azimuth = atan2(sin(hourAngleRadians), cos(hourAngleRadians) * sin(latitudeRadians) - tan(declRadians) * cos(latitudeRadians))
+        
+        let altitudeDegrees = altitude * 180 / .pi
+        let azimuthDegrees = (azimuth * 180 / .pi + 180).truncatingRemainder(dividingBy: 360) // Adjust azimuth to be between 0 and 360 degrees
+        
+        return (azimuth: azimuthDegrees, elevation: altitudeDegrees)
+    }
+}
